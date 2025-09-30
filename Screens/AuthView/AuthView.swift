@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct CheckDailyAuthView: View {
-    @StateObject var authModel = authStorage()
+    @EnvironmentObject var authModel: AuthStorage
+    @StateObject private var vm = SignInViewModel()
     
-    @State var email: String = ""
-    @State var password: String = ""
-    @FocusState var isFocused: Bool
+    @State var createAccountPopoverPresented: Bool = false
     
     var body: some View {
         VStack (spacing: 30) {
@@ -27,13 +26,20 @@ struct CheckDailyAuthView: View {
                     .foregroundColor(Color("secondary-text"))
             }
             VStack {
-                InputField(placeholder: "Email", textvalue: $email)
-                InputField(isPassword: true, placeholder: "Password", textvalue: $password)
+                InputField(placeholder: "Email", textvalue: $vm.email)
+                InputField(isPassword: true, placeholder: "Password", textvalue: $vm.password)
             }
             VStack (spacing: 12) {
                 TButton(
-                    isFilled: true, shouldDisable: email.isEmpty || password.isEmpty,
-                    text: "Continue"
+                    isFilled: true,
+                    text: "Continue",
+                    action: {
+                        if vm.signIn() {
+                            vm.errorMessage = nil
+                            authModel.isLoggedIn = true
+                            print("Auth model is logged in saved", authModel.isLoggedIn)
+                        }
+                    }
                 )
                 Text("or")
                     .font(.callout)
@@ -42,12 +48,25 @@ struct CheckDailyAuthView: View {
                     isFilled: false, image: "touchid", text: "Use Biometrics"
                 )
             }
+            Button(action: {
+                createAccountPopoverPresented = true
+            }) {
+                Text("Don't have an account? Sign up")
+                    .font(.caption)
+                    .foregroundColor(Color("secondary-text"))
+            }
+            .popover(isPresented: $createAccountPopoverPresented) {
+                CreateAccountPopoverView(
+                    onClose: {
+                        createAccountPopoverPresented = false
+                    }
+                ).environmentObject(authModel)
+            }
+            if (vm.errorMessage != nil) {
+                Text(vm.errorMessage ?? "")
+                    .foregroundColor(.red)
+            }
         }
         .padding()
     }
-}
-
-
-#Preview {
-    CheckDailyAuthView()
 }

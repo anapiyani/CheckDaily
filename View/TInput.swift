@@ -9,6 +9,7 @@ import SwiftUI
 struct InputField: View {
     var isPassword: Bool? = false
     var placeholder: String?
+    var isLowercase: Bool? = false
     
     @Binding var textvalue: String
     @State var showPassword: Bool = false
@@ -37,6 +38,7 @@ struct InputField: View {
         } else {
             TextField(placeholder ?? "Text", text: $textvalue)
                 .self.modifier(InputStyles())
+                .textInputAutocapitalization(isLowercase ?? true ? .none : .sentences)
         }
     }
 }

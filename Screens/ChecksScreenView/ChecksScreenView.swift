@@ -8,7 +8,25 @@
 import SwiftUI
 
 struct ChecksScreenView: View {
+    @StateObject var authModel = AuthStorage()
+    
     var body: some View {
-        Text("Checks Screen View")
+        if authModel.isLoggedIn {
+            ZStack {
+                Color.gray.edgesIgnoringSafeArea(.all)
+                
+                VStack {
+                    Text("ChecksScreenView")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                }
+            }
+        } else {
+            CheckDailyAuthView()
+        }
     }
+}
+
+#Preview {
+    ChecksScreenView()
 }

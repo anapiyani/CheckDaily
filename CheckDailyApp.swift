@@ -9,9 +9,12 @@ import SwiftUI
 
 @main
 struct CheckDailyApp: App {
+    @StateObject private var authModel = AuthStorage()
+
     var body: some Scene {
         WindowGroup {
-            CheckDailyAuthView()
+            AuthRootView()
+                .environmentObject(authModel)
         }
     }
 }
