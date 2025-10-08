@@ -7,23 +7,15 @@ struct TButton: View {
     var shouldDisable: Bool = false
     var text: String = "Continue"
     var action: () -> Void = {}
+    var imagePlacement: String? = "left" 
 
     var body: some View {
         styled(
             Button(action: action) {
-                HStack(spacing: 8) {
-                    if let image {
-                        Image(systemName: image)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 18, height: 18)
-                    }
-                    Text(text)
-                        .font(.body.weight(.semibold))
-                        .lineLimit(1)
-                }
-                .frame(maxWidth: .infinity)
-                .contentShape(Rectangle())
+                TButtonInsider(
+                    imagePlacement: imagePlacement,
+                    image: image, text: text
+                )
             },
             filled: isFilled
         )

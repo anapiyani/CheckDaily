@@ -12,20 +12,14 @@ struct AuthRootView: View {
     
     var body: some View {
         Group {
-            if authModel.isLoggedIn {
-                Text("Welcome to CheckDaily")
-                Button("logout") {
-                    authModel.isLoggedIn = false
+            NavigationStack {
+                if authModel.isLoggedIn {
+                    WelcomeView()
+                } else {
+                    CheckDailyAuthView()
                 }
-            } else {
-                CheckDailyAuthView()
             }
         }
-        .environmentObject(authModel)
     }
 }
 
-
-#Preview {
-    AuthRootView().environmentObject(AuthStorage())
-}
