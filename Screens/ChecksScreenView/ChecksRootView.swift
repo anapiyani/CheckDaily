@@ -23,7 +23,7 @@ struct ChecksRootView: View {
                         .fontWeight(.bold)
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    NavigationLink(destination: CreateView()) {
+                    NavigationLink(destination: CreateView().navigationBarBackButtonHidden(true)) {
                         Image(systemName: "plus")
                             .resizable()
                             .frame(width: 18, height: 18)
@@ -49,3 +49,12 @@ struct ChecksRootView: View {
         }
     }
 }
+
+#Preview {
+    ChecksRootView()
+        .environmentObject(checksViewModel(checks: [
+                    durations(name: "Preview Example", count: 7, created_at: .now)
+                ]))
+}
+
+// For example now.

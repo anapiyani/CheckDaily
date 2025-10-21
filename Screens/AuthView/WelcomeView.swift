@@ -56,6 +56,7 @@ struct WelcomeView: View {
                 )
                 .padding(.bottom, 40)
                 .padding(.top, 40)
+                .padding(.horizontal, 30)
             }
         }
     }

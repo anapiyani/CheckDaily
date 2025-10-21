@@ -57,9 +57,6 @@ struct CreateAccountPopoverView: View {
                         submit()
                     }
             )
-            .toastLoading(isPresented: $isLoading)
-            .toastError(isPresented: $showErrorToast, "Error while creating account.")
-            .toastSuccess(isPresented: $isSignUpSuccess, "Account created successfully!")
             .padding()
             Spacer()
         }

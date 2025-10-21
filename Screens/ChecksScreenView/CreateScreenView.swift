@@ -11,7 +11,7 @@ struct CreateView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                Text("Here we are")
+                CreateMainView()
             }
             .padding()
             .toolbar {
@@ -40,8 +40,4 @@ struct CreateView: View {
             }
         }
     }
-}
-
-#Preview {
-    CreateView()
 }
