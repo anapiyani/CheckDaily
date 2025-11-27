@@ -6,12 +6,48 @@
 //
 
 import Foundation
+import SwiftUI
 
-struct durations: Identifiable {
+struct DayStatus: Identifiable, Equatable {
+    let id: UUID = UUID()
+    let date: Date
+    var isChecked: Bool? = false
+    var checkedAt: Date? = nil
+}
+
+struct durations: Identifiable, Equatable {
     var id = UUID()
     var name: String
     var count: Int
-    var created_at: Date
+    var createdAt: Date
+    var days: [DayStatus]
+    
+    init(name: String, count: Int, createdAt: Date = Date()) {
+            let safeCount = max(0, count)
+            let start = Calendar.current.startOfDay(for: createdAt)
+            let builtDays: [DayStatus] = (0..<safeCount).map { i in
+                let d = Calendar.current.date(byAdding: .day, value: i, to: start) ?? start
+                return DayStatus(date: Calendar.current.startOfDay(for: d))
+            }
+
+            self.name = name
+            self.count = safeCount
+            self.createdAt = start
+            self.days = builtDays
+        }
+    
+    mutating func checkToday() {
+        let today = Calendar.current.startOfDay(for: Date())
+        
+        if let index = days.firstIndex(where: { $0.date == today }) {
+            days[index].isChecked = true
+            days[index].checkedAt = Date()
+        } else {
+            let newDay = DayStatus(date: today, isChecked: true, checkedAt: Date())
+            days.append(newDay)
+            count = days.count
+        }
+    }
 }
 
 final class checksViewModel: ObservableObject {
@@ -51,6 +87,14 @@ final class checksViewModel: ObservableObject {
     
     func remove(_ id: UUID) {
         checks.removeAll { $0.id == id }
+    }
+    
+    func checkToday(for id: UUID) {
+        guard let index = checks.firstIndex(where: { $0.id == id }) else { return }
+        
+        var updated = checks[index]
+        updated.checkToday()
+        checks[index] = updated
     }
     
     func removeAll() {

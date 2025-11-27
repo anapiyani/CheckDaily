@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ChecksMainView: View {
     @EnvironmentObject var vm: checksViewModel
+    @State private var selectedItem: durations?
     
     var body: some View {
         NavigationStack {
@@ -16,11 +17,20 @@ struct ChecksMainView: View {
                 EmptyView()
                 Spacer()
             } else {
-                ForEach(vm.checks, id: \.id) {
-                    check in Text(check.name)
+                ScrollView {
+                    ForEach(vm.checks, id: \.id) {
+                        check in
+                            ChecksContainerView(id: check.id)
+                                .padding()
+                                .onTapGesture {
+                                    selectedItem = check
+                                }
+                    }
                 }
+                .sheet(item: $selectedItem, content: { item in
+                    ChecksPopoverView(checkID: item.id, onDismiss: {selectedItem = nil})
+                })
             }
         }
     }
 }
-

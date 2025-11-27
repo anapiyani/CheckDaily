@@ -43,7 +43,7 @@ struct CreateMainView: View {
         let item = durations(
             name: name,
             count: effectiveDays ?? 30,
-            created_at: Date()
+            createdAt: Date()
         )
         vm.add(item)
         created.toggle()

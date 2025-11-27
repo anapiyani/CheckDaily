@@ -49,12 +49,10 @@ struct ChecksRootView: View {
         }
     }
 }
-
+// For example now.
 #Preview {
     ChecksRootView()
         .environmentObject(checksViewModel(checks: [
-                    durations(name: "Preview Example", count: 7, created_at: .now)
+            durations(name: "Example", count: 33, createdAt: .now)
                 ]))
 }
-
-// For example now.
