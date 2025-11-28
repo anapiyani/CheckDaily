@@ -40,7 +40,12 @@ final class SignInViewModel: ObservableObject {
         errorMessage = "Неверный email или пароль"
         return false
     }
+    
+    func signOut() {
+        UserDefaults.standard.set(false, forKey: "isLoggedIn")
+    }
 }
+
 
 final class SignUpViewModel: ObservableObject {
     @Published var username: String = ""

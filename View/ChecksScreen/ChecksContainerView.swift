@@ -43,14 +43,17 @@ struct ChecksContainerView: View {
             }
             .padding(.bottom, 10)
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(days) { day in
+                ForEach(days.prefix(30)) { day in
                     RoundedRectangle(cornerRadius: 6)
                         .fill(day.isChecked! ? Color.green.opacity(0.9) : Color.gray.opacity(0.3))
                         .frame(width: 18, height: 18)
-                        .redacted(reason: .placeholder)
                 }
             }
-            Spacer()
+            if (count > 30) {
+                Text("+\(count - 30) more days")
+                    .font(.caption)
+                    .foregroundStyle(Color("secondary-text"))
+            }
         }
         .padding()
         .frame(maxWidth: .infinity, minHeight: 250)

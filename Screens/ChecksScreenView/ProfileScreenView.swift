@@ -8,7 +8,12 @@
 import SwiftUI
 
 struct ProfileView: View {
+    @EnvironmentObject var authModel: AuthStorage
+    
     var body: some View {
         Text("ProfileScreenView")
+        TButton(text: "Sign out", action: {
+            authModel.isLoggedIn = false
+        })
     }
 }
