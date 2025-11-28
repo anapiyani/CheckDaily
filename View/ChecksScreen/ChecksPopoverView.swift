@@ -50,9 +50,9 @@ struct ChecksPopoverView: View {
                 .padding(.horizontal)
                 .padding(.top)
                 HStack {
-                    Badge(text: "10% Complete", color: .green, textColor: .green)
+                    Badge(text: "\(check.percentage)% Complete", color: .green, textColor: .green)
                         .padding(.horizontal, 14)
-                    Badge(text: "32/90 days", color: .blue500, textColor: .blue)
+                    Badge(text: "\(check.passedDays)/\(check.count) days", color: .blue500, textColor: .blue)
                     Spacer()
                 }
                 .padding(.bottom)
