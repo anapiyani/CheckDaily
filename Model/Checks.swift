@@ -21,6 +21,8 @@ struct durations: Identifiable, Equatable {
     var count: Int
     var createdAt: Date
     var days: [DayStatus]
+    var passedDays: Int
+    var percentage: Int
     
     init(name: String, count: Int, createdAt: Date = Date()) {
             let safeCount = max(0, count)
@@ -33,6 +35,8 @@ struct durations: Identifiable, Equatable {
             self.name = name
             self.count = safeCount
             self.createdAt = start
+            self.passedDays = Calendar.current.dateComponents([.day], from: self.createdAt, to: Date()).day ?? 0
+            self.percentage = Int(Double(passedDays) / Double(count) * 100)
             self.days = builtDays
         }
     
@@ -47,6 +51,12 @@ struct durations: Identifiable, Equatable {
             days.append(newDay)
             count = days.count
         }
+    }
+    
+    mutating func recalcStats() {
+        let checkedCount = days.filter { $0.isChecked == true }.count
+        self.passedDays = Calendar.current.dateComponents([.day], from: createdAt, to: Date()).day ?? 0
+        self.percentage = count == 0 ? 0 : Int(Double(checkedCount) / Double(count) * 100)
     }
 }
 
@@ -94,6 +104,8 @@ final class checksViewModel: ObservableObject {
         
         var updated = checks[index]
         updated.checkToday()
+        updated.recalcStats()
+        updated.passedDays += 1
         checks[index] = updated
     }
     

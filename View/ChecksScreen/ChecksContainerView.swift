@@ -17,18 +17,8 @@ struct ChecksContainerView: View {
     var name: String {checkData.name}
     var days: [DayStatus] {checkData.days}
     var createdAt: Date {checkData.createdAt}
-    
-
-    // TODO: When checked show instand add passed day + 1 day AND add percentage
-    //
-    
-    private func getHowManyDaysPassed() -> Int {
-        return Calendar.current.dateComponents([.day], from: createdAt, to: Date()).day ?? 0
-    }
-    
-    private func getPercentage() -> Double {
-        Double(getHowManyDaysPassed()) / Double(count) * 100
-    }
+    var passedDays: Int {checkData.passedDays}
+    var percentage: Int {checkData.percentage}
     
     private var itemCount: Int { min(count, 30) }
     let columns = [GridItem(.adaptive(minimum: 24), spacing: 12)]
@@ -43,12 +33,12 @@ struct ChecksContainerView: View {
             .padding(.bottom, 10)
             VStack(alignment: .leading) {
                 HStack {
-                    Text("\(getHowManyDaysPassed()) of \(count) days")
+                    Text("\(passedDays) of \(count) days")
                     Spacer()
-                    Text("\(getPercentage().rounded(.down).description + "%")")
+                    Text("\(Double(percentage).rounded(.down).description + "%")")
                 }
                 VStack {
-                    ProgressView(value: getPercentage())
+                    ProgressView(value: Double(percentage), total: 100.0)
                 }
             }
             .padding(.bottom, 10)
