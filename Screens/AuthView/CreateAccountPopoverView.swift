@@ -23,7 +23,7 @@ struct CreateAccountPopoverView: View {
             return
         }
         isLoading = true
-        vm.createAndSaveUser()
+        vm.createAndSaveUser(auth: auth)
         isSignUpSuccess = true
         onClose()
     }
