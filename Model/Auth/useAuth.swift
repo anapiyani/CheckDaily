@@ -6,9 +6,15 @@
 //
 
 import SwiftUI
+import LocalAuthentication
 
 struct RegisterData: Codable {
     var username: String
+    var email: String
+    var password: String
+}
+
+struct LoginData: Codable {
     var email: String
     var password: String
 }
@@ -19,7 +25,7 @@ struct User: Codable {
     var email: String
 }
 
-struct RegisterResponse: Codable {
+struct AuthResponse: Codable {
     var success: Bool
     var message: String
     var token: String
@@ -48,7 +54,13 @@ final class AuthStorage: ObservableObject {
         self.username   = UserDefaults.standard.string(forKey: "username") ?? ""
         self.email      = UserDefaults.standard.string(forKey: "email") ?? ""
         self.isLoggedIn = UserDefaults.standard.bool(forKey: "isLoggedIn")
-        self.token      = nil
+        
+        if let tokenData = KeychainService.load(key: "auth_token"),
+           let token = String(data: tokenData, encoding: .utf8) {
+            
+            self.token = token
+            self.isLoggedIn = true
+        }
     }
 }
 
@@ -57,19 +69,96 @@ final class SignInViewModel: ObservableObject {
     @Published var password: String = ""
     @Published var errorMessage: String?
     
-    @discardableResult
-    func signIn() -> Bool {
+    func signIn(auth: AuthStorage, completion: @escaping (Bool) -> Void) {
         guard !email.trimmingCharacters(in: .whitespaces).isEmpty,
               !password.isEmpty
-        else { return false }
-        if email == UserDefaults.standard.string(forKey: "email") ?? "" &&
-            password == UserDefaults.standard.string(forKey: "password") ?? "" {
-            UserDefaults.standard.set(true, forKey: "isLoggedIn")
-            return true
+        else {
+            completion(false)
+            return
         }
-        errorMessage = "Неверный email или пароль"
-        return false
+        
+        guard let url = URL(string: "http://192.168.0.109:8000/api/v1/auth/login") else {
+            completion(false)
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        let jsonData: [String: Any] = [
+            "email": email,
+            "password": password
+        ]
+
+        do { request.httpBody = try JSONSerialization.data(withJSONObject: jsonData) }
+        catch {
+            completion(false)
+            return
+        }
+
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error {
+                print("Request error", error)
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+
+            guard let data = data else {
+                DispatchQueue.main.async { completion(false) }
+                return
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(AuthResponse.self, from: data)
+                DispatchQueue.main.async {
+                    auth.username = decoded.user.username
+                    auth.email = decoded.user.email
+                    auth.token = decoded.token
+                    auth.isLoggedIn = true
+
+                    KeychainService.save(key: "auth_token", data: Data(decoded.token.utf8))
+                    self.errorMessage = nil
+                    completion(true)
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.errorMessage = "Неверный email или пароль"
+                    completion(false)
+                }
+            }
+
+        }.resume()
     }
+    
+    func biometricLogin(auth: AuthStorage) {
+        let context = LAContext()
+        var error: NSError?
+
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            let reason = "Use Face ID to login"
+
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: reason) { success, authError in
+                DispatchQueue.main.async {
+                    if success {
+                        if let tokenData = KeychainService.load(key: "auth_token"),
+                           let token = String(data: tokenData, encoding: .utf8) {
+
+                            auth.token = token
+                            auth.isLoggedIn = true
+                        }
+                    } else {
+                        self.errorMessage = "Authentication failed"
+                    }
+                }
+            }
+        } else {
+            DispatchQueue.main.async {
+                self.errorMessage = "Biometrics unavailable"
+            }
+        }
+    }
+
     
     func signOut() {
         UserDefaults.standard.set(false, forKey: "isLoggedIn")
@@ -119,7 +208,7 @@ final class SignUpViewModel: ObservableObject {
                 return
             }
             do {
-                let decodedSuccess = try JSONDecoder().decode(RegisterResponse.self, from: data)
+                let decodedSuccess = try JSONDecoder().decode(AuthResponse.self, from: data)
                 DispatchQueue.main.async {
                     auth.username = decodedSuccess.user.username
                     auth.email = decodedSuccess.user.email

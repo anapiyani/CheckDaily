@@ -13,6 +13,7 @@ struct CheckDailyAuthView: View {
     
     @State var createAccountPopoverPresented: Bool = false
     
+    
     var body: some View {
         VStack (spacing: 30) {
             VStack (spacing: 8) {
@@ -34,19 +35,26 @@ struct CheckDailyAuthView: View {
                     isFilled: true,
                     text: "Continue",
                     action: {
-                        if vm.signIn() {
-                            vm.errorMessage = nil
-                            authModel.isLoggedIn = true
-                            print("Auth model is logged in saved", authModel.isLoggedIn)
+                        vm.signIn(auth: authModel) { success in
+                            if success {
+                                print("Logged in")
+                            }
                         }
                     }
                 )
                 Text("or")
                     .font(.callout)
                     .foregroundColor(Color("secondary-text"))
-                TButton(
-                    isFilled: false, image: "touchid", text: "Use Biometrics"
-                )
+                if KeychainService.load(key: "auth_token") != nil {
+                    TButton(
+                        isFilled: false,
+                        image: "touchid",
+                        text: "Use Biometrics",
+                        action: {
+                            vm.biometricLogin(auth: authModel)
+                        }
+                    )
+                }
             }
             Button(action: {
                 createAccountPopoverPresented = true

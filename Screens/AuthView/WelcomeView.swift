@@ -9,9 +9,10 @@ import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject var authModel: AuthStorage
-    
+    @StateObject private var vm = SignInViewModel()
     @State private var animateRotation: Bool = false
 
+    @State private var isBiometricUnlocked: Bool = false
     
     var body: some View {
         NavigationView {
@@ -46,17 +47,39 @@ struct WelcomeView: View {
                         .font(.headline)
                         .foregroundColor(Color("secondary-text"))
                 }
-                TNavigationButton(
-                    colors: .black,
-                    isFilled: true,
-                    image: "arrow.right",
-                    text: "Get started",
-                    imagePlacement: "right",
-                    destination: ChecksRootView().navigationBarBackButtonHidden(true)
-                )
-                .padding(.bottom, 40)
-                .padding(.top, 40)
-                .padding(.horizontal, 30)
+                if isBiometricUnlocked == true {
+                    TNavigationButton(
+                        colors: .black,
+                        isFilled: true,
+                        image: "arrow.right",
+                        text: "Get started",
+                        imagePlacement: "right",
+                        destination: ChecksRootView().navigationBarBackButtonHidden(true)
+                    )
+                    .padding(.bottom, 40)
+                    .padding(.top, 40)
+                    .padding(.horizontal, 30)
+                }
+                if isBiometricUnlocked == false {
+                    if KeychainService.load(key: "auth_token") != nil {
+                        TButton(
+                            isFilled: false,
+                            image: "touchid",
+                            text: "Use Biometrics",
+                            action: {
+                                vm.biometricLogin(auth: authModel)
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    if authModel.isLoggedIn {
+                                        isBiometricUnlocked = true
+                                    }
+                                }
+                            }
+                        )
+                        .padding(.bottom, 40)
+                        .padding(.top, 40)
+                        .padding(.horizontal, 30)
+                    }
+                }
             }
         }
     }
