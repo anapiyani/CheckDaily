@@ -77,7 +77,7 @@ final class SignInViewModel: ObservableObject {
             return
         }
         
-        guard let url = URL(string: "http://192.168.0.109:8000/api/v1/auth/login") else {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/auth/login") else {
             completion(false)
             return
         }
@@ -183,7 +183,7 @@ final class SignUpViewModel: ObservableObject {
     }
 
     func createAndSaveUser(auth: AuthStorage) {
-        guard let url = URL(string: "http://192.168.0.109:8000/api/v1/auth/register") else { return }
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/auth/register") else { return }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

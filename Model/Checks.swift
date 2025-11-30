@@ -15,8 +15,63 @@ struct DayStatus: Identifiable, Equatable {
     var checkedAt: Date? = nil
 }
 
+
+struct APICheckDay: Codable, Identifiable {
+    let id: String
+    let date: String
+    let is_checked: Bool
+    let checked_at: String?
+}
+
+struct APICheckResponse: Codable, Identifiable {
+    let id: String
+    let name: String
+    let count: Int
+    let created_at: String
+    let passed_days: Int
+    let percentage: Int
+    let days: [APICheckDay]
+}
+
+extension APICheckResponse {
+    func toDurations() -> durations {
+        func parse(_ s: String) -> Date {
+            let fmt = DateFormatter()
+            fmt.locale = Locale(identifier: "en_US_POSIX")
+            fmt.timeZone = .current
+            fmt.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+            return fmt.date(from: s) ?? Date()
+        }
+
+        let created = parse(created_at)
+
+        let mappedDays = days.map { api in
+            DayStatus(
+                date: parse(api.date),
+                isChecked: api.is_checked,
+                checkedAt: api.checked_at != nil ? parse(api.checked_at!) : nil
+            )
+        }
+
+        return durations(
+            apiID: self.id,
+            fromAPI: name,
+            count: count,
+            createdAt: created,
+            days: mappedDays,
+            passedDays: passed_days,
+            percentage: percentage
+        )
+    }
+}
+
+struct APIChecksList: Codable {
+    let checks: [APICheckResponse]
+}
+
 struct durations: Identifiable, Equatable {
     var id = UUID()
+    var apiID: String
     var name: String
     var count: Int
     var createdAt: Date
@@ -24,21 +79,23 @@ struct durations: Identifiable, Equatable {
     var passedDays: Int
     var percentage: Int
     
-    init(name: String, count: Int, createdAt: Date = Date()) {
-            let safeCount = max(0, count)
-            let start = Calendar.current.startOfDay(for: createdAt)
-            let builtDays: [DayStatus] = (0..<safeCount).map { i in
-                let d = Calendar.current.date(byAdding: .day, value: i, to: start) ?? start
-                return DayStatus(date: Calendar.current.startOfDay(for: d))
-            }
-
-            self.name = name
-            self.count = safeCount
-            self.createdAt = start
-            self.passedDays = Calendar.current.dateComponents([.day], from: self.createdAt, to: Date()).day ?? 0
-            self.percentage = Int(Double(passedDays) / Double(count) * 100)
-            self.days = builtDays
-        }
+    init(apiID: String,
+         fromAPI name: String,
+         count: Int,
+         createdAt: Date,
+         days: [DayStatus],
+         passedDays: Int,
+         percentage: Int)
+    {
+        self.id = UUID()
+        self.apiID = apiID   
+        self.name = name
+        self.count = count
+        self.createdAt = createdAt
+        self.days = days
+        self.passedDays = passedDays
+        self.percentage = percentage
+    }
     
     mutating func checkToday() {
         let today = Calendar.current.startOfDay(for: Date())
@@ -79,13 +136,127 @@ final class checksViewModel: ObservableObject {
         checks.first(where: { $0.id == id })
     }
     
-    func add(_ check: durations) {
-        guard !checks.contains(where: { $0.id == check.id }) else {
+    static func add(name: String, count: Int, token: String, completion: @escaping (durations?) -> Void) {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/checks") else {
+            completion(nil)
             return
         }
-        checks.append(check)
-        print(checks)
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        let body: [String: Any] = [
+            "name": name,
+            "count": count
+        ]
+
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            if let error = error {
+                print("Request error:", error)
+                completion(nil)
+                return
+            }
+
+            guard let data = data else {
+                completion(nil)
+                return
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(APICheckResponse.self, from: data)
+                let mapped = decoded.toDurations()
+                completion(mapped)
+            } catch {
+                print("Decoding error:", error)
+                print("Raw:", String(data: data, encoding: .utf8) ?? "")
+                completion(nil)
+            }
+        }.resume()
     }
+    
+    func fetchAll(token: String) {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/checks") else { return }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            
+            if let error = error {
+                print("Fetch error:", error)
+                return
+            }
+
+            guard let data = data else { return }
+
+            do {
+                let decoded = try JSONDecoder().decode(APIChecksList.self, from: data)
+                let mapped = decoded.checks.map { $0.toDurations() }
+
+                DispatchQueue.main.async {
+                    self.checks = mapped
+                }
+            } catch {
+                print("Decoding error:", error)
+                print("Raw response:", String(data: data, encoding: .utf8) ?? "no utf8")
+            }
+        }.resume()
+    }
+    
+    func parseISO(_ s: String) -> Date {
+        let f1 = ISO8601DateFormatter()
+        f1.formatOptions = [.withInternetDateTime]
+
+        if let d = f1.date(from: s) { return d }
+
+        let f2 = ISO8601DateFormatter()
+        f2.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        return f2.date(from: s) ?? Date()
+    }
+    
+    func fetchDetail(for apiID: String, token: String, completion: @escaping (durations?) -> Void) {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/checks/\(apiID)") else {
+            completion(nil)
+            return
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+
+        URLSession.shared.dataTask(with: request) { data, response, error in
+
+            if let error = error {
+                print("Detail fetch error:", error)
+                completion(nil)
+                return
+            }
+
+            guard let data = data else {
+                completion(nil)
+                return
+            }
+
+            do {
+                let decoded = try JSONDecoder().decode(APICheckResponse.self, from: data)
+                let mapped = decoded.toDurations()
+                completion(mapped)
+            } catch {
+                print("Decoding detail error:", error)
+                print("RAW:", String(data: data, encoding: .utf8) ?? "")
+                completion(nil)
+            }
+
+        }.resume()
+    }
+
     
     func update(_ check: durations) {
         if let index = checks.firstIndex(where: {$0.id == check.id}) {

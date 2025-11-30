@@ -7,78 +7,91 @@
 import SwiftUI
 
 struct ChecksPopoverView: View {
+    let checkID: String
     @EnvironmentObject var vm: checksViewModel
-    var checkID: UUID
-    var onDismiss: () -> Void
+    @EnvironmentObject var auth: AuthStorage
     
-    var check: durations {
-        vm[id: checkID]!
-    }
+    @State private var check: durations? = nil
+    var onDismiss: () -> Void
     
     let columns = [GridItem(.adaptive(minimum: 24), spacing: 12)]
     
     var body: some View {
-        ZStack {
-            VStack {
-                HStack {
+        Group {
+            if let check {
+                ZStack {
                     VStack {
-                        Image(systemName: "target")
-                            .resizable()
-                            .scaledToFit()
-                            .foregroundStyle(.white)
-                            .frame(width: 20, height: 20)
-                    }
-                    .padding()
-                    .background(.linearGradient(colors: [Color(.systemGray2), Color(.gray)], startPoint: .bottom, endPoint: .top))
-                    .cornerRadius(18)
-                    Text("\(check.name)")
-                        .font(.title3)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding()
-                    Spacer()
-                    Image(systemName: "xmark.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                        .foregroundStyle(.black)
-                        .padding()
-                        .onTapGesture {
-                            onDismiss()
+                        HStack {
+                            VStack {
+                                Image(systemName: "target")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .foregroundStyle(.white)
+                                    .frame(width: 20, height: 20)
+                            }
+                            .padding()
+                            .background(.linearGradient(colors: [Color(.systemGray2), Color(.gray)], startPoint: .bottom, endPoint: .top))
+                            .cornerRadius(18)
+                            Text("\(check.name)")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(.black)
+                                .padding()
+                            Spacer()
+                            Image(systemName: "xmark.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 20, height: 20)
+                                .foregroundStyle(.black)
+                                .padding()
+                                .onTapGesture {
+                                    onDismiss()
+                                }
                         }
+                        .padding(.horizontal)
+                        .padding(.top)
+                        HStack {
+                            Badge(text: "\(check.percentage)% Complete", color: .green, textColor: .green)
+                                .padding(.horizontal, 14)
+                            Badge(text: "\(check.passedDays)/\(check.count) days", color: .blue500, textColor: .blue)
+                            Spacer()
+                        }
+                        .padding(.bottom)
+                        Divider()
+                    }
                 }
-                .padding(.horizontal)
-                .padding(.top)
-                HStack {
-                    Badge(text: "\(check.percentage)% Complete", color: .green, textColor: .green)
-                        .padding(.horizontal, 14)
-                    Badge(text: "\(check.passedDays)/\(check.count) days", color: .blue500, textColor: .blue)
-                    Spacer()
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 12) {
+                        ForEach(check.days) { day in
+                            DayBox(day: day)
+                        }
+                    }
                 }
-                .padding(.bottom)
-                Divider()
+                .padding()
+                TButton(
+                    colors: .emerald,
+                    image: "checkmark.circle",
+                    text: "Done For Today",
+                    action: {vm.checkToday(for: check.id)},
+                    imagePlacement: "right"
+                )
+                .padding()
+                Spacer()
+            } else {
+                ProgressView("Loading...")
             }
         }
-        ScrollView {
-            LazyVGrid(columns: columns, spacing: 12) {
-                   ForEach(check.days) { day in
-                       DayBox(day: day)
-                   }
+        .onAppear {
+            if let token = auth.token {
+                vm.fetchDetail(for: checkID, token: token) { result in
+                    DispatchQueue.main.async {
+                        self.check = result
+                    }
+                }
             }
         }
-        .padding()
-        TButton(
-            colors: .emerald,
-            image: "checkmark.circle",
-            text: "Done For Today",
-            action: {vm.checkToday(for: check.id)},
-            imagePlacement: "right"
-        )
-        .padding()
-        Spacer()
     }
 }
-
 
 struct DayBox: View {
     let day: DayStatus

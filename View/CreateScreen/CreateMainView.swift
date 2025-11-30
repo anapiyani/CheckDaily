@@ -7,6 +7,7 @@
 import SwiftUI
 
 struct CreateMainView: View {
+    @EnvironmentObject var auth: AuthStorage
     @EnvironmentObject var vm: checksViewModel
     @State var name: String = ""
     @State var selectedId: UUID? = nil
@@ -40,13 +41,17 @@ struct CreateMainView: View {
     }
     
     func save() {
-        let item = durations(
-            name: name,
-            count: effectiveDays ?? 30,
-            createdAt: Date()
-        )
-        vm.add(item)
-        created.toggle()
+        guard let token = auth.token else { return }
+        guard let count = effectiveDays else { return }
+
+        checksViewModel.add(name: name, count: count, token: token) { newCheck in
+            DispatchQueue.main.async {
+                if let newCheck {
+                    vm.update(newCheck)
+                    created = true
+                }
+            }
+        }
     }
     
     var body: some View {

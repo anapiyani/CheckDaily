@@ -78,6 +78,18 @@ struct WelcomeView: View {
                         .padding(.bottom, 40)
                         .padding(.top, 40)
                         .padding(.horizontal, 30)
+                    } else {
+                        TNavigationButton(
+                            colors: .black,
+                            isFilled: true,
+                            image: "arrow.right",
+                            text: "Get started",
+                            imagePlacement: "right",
+                            destination: ChecksRootView().navigationBarBackButtonHidden(true)
+                        )
+                        .padding(.bottom, 40)
+                        .padding(.top, 40)
+                        .padding(.horizontal, 30)
                     }
                 }
             }

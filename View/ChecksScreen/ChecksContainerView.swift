@@ -6,53 +6,61 @@
 //
 
 import SwiftUI
-
 struct ChecksContainerView: View {
     var id: UUID
     @EnvironmentObject var vm: checksViewModel
-    private var checkData: durations {
-        vm[id: id]!
+    
+    private var checkData: durations? {
+        vm[id: id]
     }
-    var count: Int {checkData.count}
-    var name: String {checkData.name}
-    var days: [DayStatus] {checkData.days}
-    var createdAt: Date {checkData.createdAt}
-    var passedDays: Int {checkData.passedDays}
-    var percentage: Int {checkData.percentage}
+
+    private var itemCount: Int {
+        min(checkData?.count ?? 0, 30)
+    }
     
-    private var itemCount: Int { min(count, 30) }
     let columns = [GridItem(.adaptive(minimum: 24), spacing: 12)]
-    
+
     var body: some View {
-        VStack (spacing: 14) {
+        Group {
+            if let check = checkData {
+                content(for: check)
+            } else {
+                placeholder
+            }
+        }
+    }
+
+    private func content(for check: durations) -> some View {
+        VStack(spacing: 14) {
             HStack {
-                Text(name)
+                Text(check.name)
                     .font(.headline)
                 Spacer()
             }
             .padding(.bottom, 10)
+            
             VStack(alignment: .leading) {
                 HStack {
-                    Text("\(passedDays) of \(count) days")
+                    Text("\(check.passedDays) of \(check.count) days")
                     Spacer()
-                    Text("\(Double(percentage).rounded(.down).description + "%")")
+                    Text("\(check.percentage)%")
                 }
-                VStack {
-                    ProgressView(value: Double(percentage), total: 100.0)
-                }
+                ProgressView(value: Double(check.percentage), total: 100)
             }
             .padding(.bottom, 10)
+
             LazyVGrid(columns: columns, spacing: 12) {
-                ForEach(days.prefix(30)) { day in
+                ForEach(check.days.prefix(30)) { day in
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(day.isChecked! ? Color.green.opacity(0.9) : Color.gray.opacity(0.3))
+                        .fill(day.isChecked ?? false ? .green.opacity(0.9) : .gray.opacity(0.3))
                         .frame(width: 18, height: 18)
                 }
             }
-            if (count > 30) {
-                Text("+\(count - 30) more days")
+
+            if check.count > 30 {
+                Text("+\(check.count - 30) more days")
                     .font(.caption)
-                    .foregroundStyle(Color("secondary-text"))
+                    .foregroundColor(Color("secondary-text"))
             }
         }
         .padding()
@@ -61,7 +69,15 @@ struct ChecksContainerView: View {
             RoundedRectangle(cornerRadius: 30)
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 4)
-                .shadow(color: .black.opacity(0.03), radius: 10, x: 0, y: 5)
         )
+    }
+
+    private var placeholder: some View {
+        RoundedRectangle(cornerRadius: 20)
+            .fill(.gray.opacity(0.1))
+            .frame(height: 120)
+            .overlay(
+                ProgressView()
+            )
     }
 }
