@@ -7,7 +7,7 @@
 
 import SwiftUI
 struct ChecksContainerView: View {
-    var id: UUID
+    var id: String
     @EnvironmentObject var vm: checksViewModel
     
     private var checkData: durations? {

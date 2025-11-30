@@ -70,7 +70,7 @@ struct APIChecksList: Codable {
 }
 
 struct durations: Identifiable, Equatable {
-    var id = UUID()
+    var id: String
     var apiID: String
     var name: String
     var count: Int
@@ -87,8 +87,8 @@ struct durations: Identifiable, Equatable {
          passedDays: Int,
          percentage: Int)
     {
-        self.id = UUID()
-        self.apiID = apiID   
+        self.id = apiID
+        self.apiID = apiID
         self.name = name
         self.count = count
         self.createdAt = createdAt
@@ -132,7 +132,7 @@ final class checksViewModel: ObservableObject {
     
     /// Quick lookup by UUID (returns an optional result).
     /// Lets you write: `viewModel[id: someUUID]`
-    subscript(id id: UUID) -> durations? {
+    subscript(id id: String) -> durations? {
         checks.first(where: { $0.id == id })
     }
     
@@ -258,26 +258,49 @@ final class checksViewModel: ObservableObject {
     }
 
     
-    func update(_ check: durations) {
-        if let index = checks.firstIndex(where: {$0.id == check.id}) {
-            checks[index] = check
+    func update(_ check: durations, done: Bool? = false) {
+        if done == true {
+            if let index = checks.firstIndex(where: {$0.apiID == check.apiID}) {
+                checks[index] = check
+                print("updated! \(check.apiID)")
+            }
         } else {
             checks.append(check)
         }
     }
     
-    func remove(_ id: UUID) {
+    func remove(_ id: String) {
         checks.removeAll { $0.id == id }
     }
     
-    func checkToday(for id: UUID) {
-        guard let index = checks.firstIndex(where: { $0.id == id }) else { return }
-        
-        var updated = checks[index]
-        updated.checkToday()
-        updated.recalcStats()
-        updated.passedDays += 1
-        checks[index] = updated
+    func doneToday(apiID: String, token: String, completion: @escaping (durations?)  -> Void) {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/checks/\(apiID)/check-today") else {
+            completion(nil)
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error {
+                print("Error adding check today: \(error)")
+                completion(nil)
+                return
+            }
+            guard let data = data else {
+                completion(nil)
+                return
+            }
+            do {
+                let decoded = try JSONDecoder().decode(APICheckResponse.self, from: data)
+                let mapped = decoded.toDurations()
+                completion(mapped)
+            } catch {
+                print("Decoding error:", error)
+                print("Raw:", String(data: data, encoding: .utf8) ?? "")
+                completion(nil)
+            }
+        }.resume()
     }
     
     func removeAll() {

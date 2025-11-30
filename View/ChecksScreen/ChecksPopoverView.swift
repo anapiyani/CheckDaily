@@ -7,9 +7,9 @@
 import SwiftUI
 
 struct ChecksPopoverView: View {
+    @EnvironmentObject var auth: AuthStorage
     let checkID: String
     @EnvironmentObject var vm: checksViewModel
-    @EnvironmentObject var auth: AuthStorage
     
     @State private var check: durations? = nil
     var onDismiss: () -> Void
@@ -18,7 +18,7 @@ struct ChecksPopoverView: View {
     
     var body: some View {
         Group {
-            if let check {
+            if let c = check {
                 ZStack {
                     VStack {
                         HStack {
@@ -32,7 +32,7 @@ struct ChecksPopoverView: View {
                             .padding()
                             .background(.linearGradient(colors: [Color(.systemGray2), Color(.gray)], startPoint: .bottom, endPoint: .top))
                             .cornerRadius(18)
-                            Text("\(check.name)")
+                            Text("\(c.name)")
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.black)
@@ -51,9 +51,9 @@ struct ChecksPopoverView: View {
                         .padding(.horizontal)
                         .padding(.top)
                         HStack {
-                            Badge(text: "\(check.percentage)% Complete", color: .green, textColor: .green)
+                            Badge(text: "\(c.percentage)% Complete", color: .green, textColor: .green)
                                 .padding(.horizontal, 14)
-                            Badge(text: "\(check.passedDays)/\(check.count) days", color: .blue500, textColor: .blue)
+                            Badge(text: "\(c.passedDays)/\(c.count) days", color: .blue500, textColor: .blue)
                             Spacer()
                         }
                         .padding(.bottom)
@@ -62,7 +62,7 @@ struct ChecksPopoverView: View {
                 }
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 12) {
-                        ForEach(check.days) { day in
+                        ForEach(c.days) { day in
                             DayBox(day: day)
                         }
                     }
@@ -72,7 +72,17 @@ struct ChecksPopoverView: View {
                     colors: .emerald,
                     image: "checkmark.circle",
                     text: "Done For Today",
-                    action: {vm.checkToday(for: check.id)},
+                    action: {
+                        guard let token = auth.token else { return }
+                        vm.doneToday(apiID: c.apiID, token: token) { updatedCheck in
+                            DispatchQueue.main.async {
+                                if let updatedCheck {
+                                    vm.update(updatedCheck, done: true)
+                                    check = updatedCheck
+                                }
+                            }
+                        }
+                    },
                     imagePlacement: "right"
                 )
                 .padding()
