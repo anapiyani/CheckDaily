@@ -269,8 +269,34 @@ final class checksViewModel: ObservableObject {
         }
     }
     
-    func remove(_ id: String) {
-        checks.removeAll { $0.id == id }
+    func delete(apiID: String, token: String, completion: @escaping (Bool) -> Void) {
+        guard let url = URL(string: "https://checkdaily-backend-production.up.railway.app/api/v1/checks/\(apiID)/") else {
+            completion(false)
+            return
+        }
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error {
+                print("Error deleting check: \(error)")
+                completion(false)
+                return
+            }
+            guard let data = data else {
+                completion(false)
+                return
+            }
+            do {
+                _ = try JSONSerialization.jsonObject(with: data, options: [])
+                completion(true)
+            }
+            catch {
+                print("Error")
+                completion(false)
+            }
+        }
+        .resume()
     }
     
     func doneToday(apiID: String, token: String, completion: @escaping (durations?)  -> Void) {
